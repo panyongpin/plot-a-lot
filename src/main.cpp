@@ -2,6 +2,11 @@
 #include <cmath>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stb/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 #include "Header_Files/shaderClass.h"
 #include "Header_Files/VAO.h"
@@ -14,7 +19,12 @@ using namespace std;
 
 int main()
 {
-    try {
+    float width = 800;
+    float height = 800;
+    
+    cout << "input the width:"; 
+    cin >> height;
+
     // Initalize GLFW
     glfwInit();
 
@@ -25,7 +35,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a GLFWwindow object that is 800 by 800 named Plot-a-Lot that is not fullscreen
-    GLFWwindow *window = glfwCreateWindow(800, 800, "Plot-a-Lot", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(width, height, "Plot-a-Lot", NULL, NULL);
 
     // If the window did not create output an error message
     if (window == NULL)
@@ -46,35 +56,36 @@ int main()
         glfwTerminate();
         return -1;
     }
+
     // Specify the viewport of OpenGL in the window
-    glViewport(0, 0, 800, 800);
+    glViewport(0, 0, width, height);
 
     // Generates Shader object using shaders default.vert and default.frag
     Shader shaderProgram("default.vert", "default.frag");
-
+    
+    // Create orthographic projection matrix (2D view: 0,0 at bottom-left, 800x800)
+    glm::mat4 projection = glm::ortho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+    
+    // Get the projection matrix uniform location (only need to do this once)
+    GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
+    
     // Vertices coordinates
     GLfloat vertices[] =
         {
-		-0.5f, -0.5f * float(sqrt(3)) / 3, 0.0f, // Lower left corner
-		0.5f, -0.5f * float(sqrt(3)) / 3, 0.0f, // Lower right corner
-		0.0f, 0.5f * float(sqrt(3)) * 2 / 3, 0.0f, // Upper corner
-		-0.5f / 2, 0.5f * float(sqrt(3)) / 6, 0.0f, // Inner left
-		0.5f / 2, 0.5f * float(sqrt(3)) / 6, 0.0f, // Inner right
-		0.0f, -0.5f * float(sqrt(3)) / 3, 0.0f // Inner down
+		200.0f, 200.0f, 0.0f, // Lower left corner
+		400.0f, 400.0f, 0.0f, // Lower right corner
+		200.0f, 400.0f, 0.0f, // Upper corner
+		400.0f, 200.0f, 0.0f, // Inner left
         };
     // Indices for lines: each pair of consecutive indices draws a line
     GLuint indices[] =
-        {
-		0, 3, 5, // Lower left triangle
-		3, 2, 4, // Upper triangle
-		5, 4, 1 // Lower right triangle
-        };
-   	
-    
+    {
+		0, 3, 2, 
+        2, 1, 3 // Lower right triangle
+    };  
     // Generates Vertex Array Object and binds it
 	VAO VAO1;
 	VAO1.Bind();
-    
 
 	// Generates Vertex Buffer Object and links it to vertices
 	VBO VBO1(vertices, sizeof(vertices));
@@ -97,12 +108,15 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		// Tell OpenGL which Shader Program we want to use
 		shaderProgram.Activate();
+		
+		// Set the projection matrix uniform
+		GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
+		glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        
 		// Bind the VAO so OpenGL knows to use it
 		VAO1.Bind();
 		// Draw primitives, number of indices, datatype of indices, index of indices
-		// GL_LINES mode: each pair of consecutive indices draws one line
-		// 16 indices = 8 lines (8 pairs)
-		glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// Swap the back buffer with the front buffer
 		glfwSwapBuffers(window);
 		// Take care of all GLFW events
@@ -119,16 +133,4 @@ int main()
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
-    }
-    catch (int err) {
-        cout << "Error loading shader files. Error code: " << err << endl;
-        cout << "Make sure the shader files exist in Resource_Files/Shaders/" << endl;
-        glfwTerminate();
-        return -1;
-    }
-    catch (...) {
-        cout << "An unexpected error occurred!" << endl;
-        glfwTerminate();
-        return -1;
-    }
 }

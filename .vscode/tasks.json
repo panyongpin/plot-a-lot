@@ -15,6 +15,7 @@
                 "${workspaceFolder}/src/VAO.cpp",
                 "${workspaceFolder}/src/VBO.cpp",
                 "${workspaceFolder}/src/EBO.cpp",
+                "${workspaceFolder}/src/stb.cpp",
                 "${workspaceFolder}/src/shaderClass.cpp",
                 "${workspaceFolder}/lib/libglfw3dll.a",
                 "-lopengl32",
