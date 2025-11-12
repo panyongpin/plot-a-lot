@@ -22,8 +22,6 @@ int main()
     float width = 800;
     float height = 800;
     
-    cout << "input the width:"; 
-    cin >> height;
 
     // Initalize GLFW
     glfwInit();
@@ -72,16 +70,16 @@ int main()
     // Vertices coordinates
     GLfloat vertices[] =
         {
-		200.0f, 200.0f, 0.0f, // Lower left corner
-		400.0f, 400.0f, 0.0f, // Lower right corner
-		200.0f, 400.0f, 0.0f, // Upper corner
-		400.0f, 200.0f, 0.0f, // Inner left
+		200.0f, 200.0f, 0.0f, 0.0f, 0.0f, // Lower left corner
+		400.0f, 200.0f, 0.0f, 1.0f, 0.0f, // Lower right corner
+		200.0f, 400.0f, 0.0f, 0.0f, 1.0f, // Upper left corner
+		400.0f, 400.0f, 0.0f, 1.0f, 1.0f, // Upper right corner
         };
     // Indices for lines: each pair of consecutive indices draws a line
     GLuint indices[] =
     {
 		0, 3, 2, 
-        2, 1, 3 // Lower right triangle
+        1, 0, 3 // Lower right triangle
     };  
     // Generates Vertex Array Object and binds it
 	VAO VAO1;
@@ -93,11 +91,57 @@ int main()
 	EBO EBO1(indices, sizeof(indices));
 
 	// Links VBO to VAO
-	VAO1.LinkVBO(VBO1, 0);
+	// Position attribute (layout 0: x, y, z) - stride is 5 floats, offset is 0
+	VAO1.Bind();
+	VBO1.Bind();
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// Texture coordinate attribute (layout 1: u, v) - stride is 5 floats, offset is 3 floats
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 	// Unbind all to prevent accidentally modifying them
 	VAO1.Unbind();
 	VBO1.Unbind();
 	EBO1.Unbind();
+
+	// Textures
+	int widthImg, heightImg, numColCh;
+	stbi_set_flip_vertically_on_load(true);
+    
+    unsigned char *bytes = stbi_load("C:/Users/handr/Documents/GitHub/plot-a-lot/lib/deadpool.png", &widthImg, &heightImg, &numColCh, 0);
+
+
+	if (bytes == NULL)
+	{
+		cout << "Failed to load texture: deadpool.png" << endl;
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return -1;
+	}
+
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// Determine the format based on number of color channels
+	GLenum format = GL_RGB;
+	if (numColCh == 4)
+		format = GL_RGBA;
+	else if (numColCh == 1)
+		format = GL_RED;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, format, widthImg, heightImg, 0, format, GL_UNSIGNED_BYTE, bytes);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	stbi_image_free(bytes);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
     // Main while loop
     while (!glfwWindowShouldClose(window))
@@ -112,6 +156,11 @@ int main()
 		// Set the projection matrix uniform
 		GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
 		glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+		// Bind the texture and set the texture uniform
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glUniform1i(glGetUniformLocation(shaderProgram.ID, "tex0"), 0);
         
 		// Bind the VAO so OpenGL knows to use it
 		VAO1.Bind();
@@ -127,6 +176,7 @@ int main()
 	VAO1.Delete();
 	VBO1.Delete();
 	EBO1.Delete();
+	glDeleteTextures(1, &texture);
 	shaderProgram.Delete();
 
     // Terminate the window
