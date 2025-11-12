@@ -7,7 +7,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 #include "Header_Files/shaderClass.h"
 #include "Header_Files/VAO.h"
 #include "Header_Files/VBO.h"
@@ -15,15 +14,10 @@
 
 using namespace std;
 
-
-
 int main()
 {
     float width = 800;
     float height = 800;
-    
-    cout << "input the width:"; 
-    cin >> height;
 
     // Initalize GLFW
     glfwInit();
@@ -62,72 +56,95 @@ int main()
 
     // Generates Shader object using shaders default.vert and default.frag
     Shader shaderProgram("default.vert", "default.frag");
-    
+
     // Create orthographic projection matrix (2D view: 0,0 at bottom-left, 800x800)
     glm::mat4 projection = glm::ortho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
-    
+
     // Get the projection matrix uniform location (only need to do this once)
     GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
-    
+
     // Vertices coordinates
     GLfloat vertices[] =
         {
-		200.0f, 200.0f, 0.0f, // Lower left corner
-		400.0f, 400.0f, 0.0f, // Lower right corner
-		200.0f, 400.0f, 0.0f, // Upper corner
-		400.0f, 200.0f, 0.0f, // Inner left
+            200.0f, 200.0f, 0.0f, 0.0f, 0.0f, // Lower left corner
+            400.0f, 200.0f, 0.0f, 1.0f, 0.0f, // Lower right corner
+            200.0f, 400.0f, 0.0f, 0.0f, 1.0f, // Upper left corner
+            400.0f, 400.0f, 0.0f, 1.0f, 1.0f, // Upper right corner
         };
     // Indices for lines: each pair of consecutive indices draws a line
     GLuint indices[] =
-    {
-		0, 3, 2, 
-        2, 1, 3 // Lower right triangle
-    };  
+        {
+            0, 3, 2,
+            2, 1, 3 // Lower right triangle
+        };
     // Generates Vertex Array Object and binds it
-	VAO VAO1;
-	VAO1.Bind();
+    VAO VAO1;
+    VAO1.Bind();
 
-	// Generates Vertex Buffer Object and links it to vertices
-	VBO VBO1(vertices, sizeof(vertices));
-	// Generates Element Buffer Object and links it to indices
-	EBO EBO1(indices, sizeof(indices));
+    // Generates Vertex Buffer Object and links it to vertices
+    VBO VBO1(vertices, sizeof(vertices));
+    // Generates Element Buffer Object and links it to indices
+    EBO EBO1(indices, sizeof(indices));
 
-	// Links VBO to VAO
-	VAO1.LinkVBO(VBO1, 0);
-	// Unbind all to prevent accidentally modifying them
-	VAO1.Unbind();
-	VBO1.Unbind();
-	EBO1.Unbind();
+    // Links VBO to VAO
+	VAO1.LinkAttrib(VBO1, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
+	VAO1.LinkAttrib(VBO1, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    // Unbind all to prevent accidentally modifying them
+    VAO1.Unbind();
+    VBO1.Unbind();
+    EBO1.Unbind();
+
+    // Textures
+    int widthImg, heightImg, numColCh;
+    unsigned char *bytes = stbi_load("C:/Users/handr/Documents/GitHub/plot-a-lot/Resource_Files/Textures/deadpool.png", &widthImg, &heightImg, &numColCh, 0);
+
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, widthImg, heightImg, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(bytes);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // Main while loop
     while (!glfwWindowShouldClose(window))
     {
-		// Specify the color of the background
-		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-		// Clean the back buffer and assign the new color to it
-		glClear(GL_COLOR_BUFFER_BIT);
-		// Tell OpenGL which Shader Program we want to use
-		shaderProgram.Activate();
-		
-		// Set the projection matrix uniform
-		GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
-		glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(projection));
-        
-		// Bind the VAO so OpenGL knows to use it
-		VAO1.Bind();
-		// Draw primitives, number of indices, datatype of indices, index of indices
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		// Swap the back buffer with the front buffer
-		glfwSwapBuffers(window);
-		// Take care of all GLFW events
-		glfwPollEvents();
+        // Specify the color of the background
+        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        // Clean the back buffer and assign the new color to it
+        glClear(GL_COLOR_BUFFER_BIT);
+        // Tell OpenGL which Shader Program we want to use
+        shaderProgram.Activate();
+
+        // Set the projection matrix uniform
+        GLuint projLocation = glGetUniformLocation(shaderProgram.ID, "projection");
+        glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+        // Bind the VAO so OpenGL knows to use it
+        VAO1.Bind();
+        // Draw primitives, number of indices, datatype of indices, index of indices
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // Swap the back buffer with the front buffer
+        glfwSwapBuffers(window);
+        // Take care of all GLFW events
+        glfwPollEvents();
     }
 
-	// Delete all the objects we've created
-	VAO1.Delete();
-	VBO1.Delete();
-	EBO1.Delete();
-	shaderProgram.Delete();
+    // Delete all the objects we've created
+    VAO1.Delete();
+    VBO1.Delete();
+    EBO1.Delete();
+    glDeleteTextures(1, &texture);
+    shaderProgram.Delete();
 
     // Terminate the window
     glfwDestroyWindow(window);
